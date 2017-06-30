@@ -1,7 +1,10 @@
 import gym
 import numpy as np
 
+from gym.wrappers.monitoring import Monitor
+
 env = gym.make('CartPole-v0')
+env = Monitor(env, 'tmp/cart-pole-random-search-1', force=True)
 print("Action space: {0}".format(env.action_space))
 print("Observation space: {0}\n\tLow: {1}\n\tHigh: {2}".format(
     env.observation_space,
@@ -37,17 +40,28 @@ def run_episode(weights):
 
 best_params = None
 best_reward = -np.inf
+completed = 0
 
 for i_episode in range(10000):
     # Weights are 1x4 matrix
     # µ = 0 , sigma 1
     parameters = np.random.rand(4) * 2 - 1
     episodic_reward = run_episode(parameters)
+
+    if episodic_reward > 195:
+        completed += 1
+        if completed > 100:
+            break
+
     if episodic_reward > best_reward:
-        print("Got new best reward of {0}, better than previous of {1}".format(episodic_reward, best_reward))
+        print("Got new best reward of {0}, better than previous of {1}".format(
+            episodic_reward,
+            best_reward,
+        ))
         best_reward = episodic_reward
         best_params = parameters
-        # Solution calls for keeping pole up for 200 timesteps
-        if episodic_reward >= 200:
-            print("Episode {0} attained reward of {1}, terminating".format(i_episode, episodic_reward))
-            break
+
+if completed < 100:
+    print("CartPole-v0 unsolved after 10k episodes")
+
+env.close()
