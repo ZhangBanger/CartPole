@@ -1,7 +1,10 @@
 import gym
 import numpy as np
+from gym.wrappers.monitoring import Monitor
 
 env = gym.make('CartPole-v0')
+env = Monitor(env, 'tmp/cart-pole-hill-climb-1', force=True)
+
 print("Action space: {0}".format(env.action_space))
 print("Observation space: {0}\n\tLow: {1}\n\tHigh: {2}".format(
     env.observation_space,
@@ -48,26 +51,31 @@ def evaluate_policy(num_episodes, weights):
     ))
     return mean_reward
 
-best_params = None
-best_reward = -np.inf
-parameters = np.random.rand(4) * 2 - 1
-num_eval_eps = 10
 
-for i_episode in range(10000):
+best_reward = -np.inf
+best_params = np.random.rand(4) * 2 - 1
+num_eval_eps = 10
+noise_scaling = 0.1
+
+print("Running Hill Climb on Cart Pole")
+print("Params:\n\tMC Eval Count: {0} trajectories\n\tNoise Factor: {1}".format(
+    num_eval_eps,
+    noise_scaling,
+))
+
+for i_episode in range(1000):
     # Weights are 1x4 matrix
     # µ = 0 , sigma 1
-    noise_scaling = 0.1
-    print("Applying jitter to parameters with variance {0}".format(noise_scaling))
-    new_params = parameters + (np.random.rand(4) * 2 - 1) * noise_scaling
+    print("Applying jitter to parameters {}".format(best_params))
+    parameters = best_params + (np.random.rand(4) * 2 - 1) * noise_scaling
     episodic_reward = evaluate_policy(num_eval_eps, parameters)
     if episodic_reward > best_reward:
-        print("Got new best reward of {0}, better than previous of {1}".format(
+        print("Episode {2}: Got new best reward of {0}, better than previous of {1}".format(
             episodic_reward,
             best_reward,
+            i_episode,
         ))
         best_reward = episodic_reward
         best_params = parameters
-        # Solution calls for keeping pole up for 200 timesteps
-        if episodic_reward >= 200:
-            print("Episode {0} attained reward of {1}, terminating".format(i_episode * num_eval_eps, episodic_reward))
-            break
+
+env.close()
