@@ -3,12 +3,11 @@ import numpy as np
 from gym.wrappers.monitoring import Monitor
 
 MC_POLICY_EVAL_EP = 10
-BASE_NOISE_FACTOR = 0.5
+BASE_NOISE_FACTOR = 0.1
 NUM_POLICY_EVAL = 500
 
-
 env = gym.make('CartPole-v0')
-env = Monitor(env, 'tmp/cart-pole-hill-climb-3', force=True)
+env = Monitor(env, 'tmp/cart-pole-hill-climb-4', force=True)
 
 print("Action space: {0}".format(env.action_space))
 print("Observation space: {0}\n\tLow: {1}\n\tHigh: {2}".format(
@@ -57,7 +56,7 @@ def evaluate_policy(num_episodes, weights):
     return mean_reward
 
 
-best_reward = -np.inf
+last_reward = -np.inf
 best_params = np.random.rand(4) * 2 - 1
 
 print("Running Hill Climb on Cart Pole")
@@ -81,13 +80,19 @@ for i_episode in range(NUM_POLICY_EVAL):
     noise_term = np.random.randn(4) * noise_scaling
     parameters = best_params + noise_term
     episodic_reward = evaluate_policy(MC_POLICY_EVAL_EP, parameters)
-    if episodic_reward > best_reward:
-        print("Episode {2}: Got new best reward of {0}, better than previous of {1}".format(
+    if episodic_reward > last_reward:
+        print("Reward {0} is improvement from previous evaluation {1} - Eval {2}".format(
             episodic_reward,
-            best_reward,
+            last_reward,
             i_episode,
         ))
-        best_reward = episodic_reward
+        print("Updating parameters\n\tfrom {0}\n\tto{1}".format(
+            best_params,
+            parameters
+        ))
         best_params = parameters
+
+    last_reward = episodic_reward
+
 
 env.close()
