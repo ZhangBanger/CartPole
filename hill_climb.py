@@ -3,7 +3,7 @@ import numpy as np
 from gym.wrappers.monitoring import Monitor
 
 env = gym.make('CartPole-v0')
-env = Monitor(env, 'tmp/cart-pole-hill-climb-1', force=True)
+env = Monitor(env, 'tmp/cart-pole-hill-climb-2', force=True)
 
 print("Action space: {0}".format(env.action_space))
 print("Observation space: {0}\n\tLow: {1}\n\tHigh: {2}".format(
@@ -55,19 +55,26 @@ def evaluate_policy(num_episodes, weights):
 best_reward = -np.inf
 best_params = np.random.rand(4) * 2 - 1
 num_eval_eps = 10
-noise_scaling = 0.1
+base_noise_factor = 1.
+num_evaluations = 1000
 
 print("Running Hill Climb on Cart Pole")
-print("Params:\n\tMC Eval Count: {0} trajectories\n\tNoise Factor: {1}".format(
+print("Params:\n\tMC Eval Count: {0} trajectories\n\tBase Noise Factor: {1}".format(
     num_eval_eps,
-    noise_scaling,
+    base_noise_factor,
 ))
 
-for i_episode in range(1000):
+for i_episode in range(num_evaluations):
     # Weights are 1x4 matrix
     # µ = 0 , sigma 1
-    print("Applying jitter to parameters {}".format(best_params))
-    parameters = best_params + (np.random.rand(4) * 2 - 1) * noise_scaling
+    noise_scaling = 1 - (i_episode / num_evaluations)
+    print("Applying jitter with factor {0} to parameters {1}".format(
+        noise_scaling,
+        best_params,
+    ))
+
+    noise_term = (np.random.rand(4) * 2 - 1) * noise_scaling
+    parameters = best_params + noise_term
     episodic_reward = evaluate_policy(num_eval_eps, parameters)
     if episodic_reward > best_reward:
         print("Episode {2}: Got new best reward of {0}, better than previous of {1}".format(
